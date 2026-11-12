@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HidroVivero | Simulador hidráulico integral</title>
+<style>
+:root{--bg:#081522;--panel:#102438;--panel2:#132d43;--line:#25465f;--ink:#eaf5fb;--muted:#9bb4c5;--cyan:#42d7e8;--blue:#238fe0;--green:#59d69a;--gold:#ffc66d;--red:#ff8585}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#19435c 0,#081522 55%);color:var(--ink);font:15px/1.45 Inter,system-ui,Segoe UI,sans-serif}
+main{max-width:1420px;margin:auto;padding:24px 22px 48px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px}.eyebrow{color:var(--cyan);font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}h1{font-size:clamp(26px,4vw,42px);line-height:1.05;margin:7px 0}.lead{color:var(--muted);max-width:750px;margin:8px 0}.live{border:1px solid #28634f;background:#103b35;color:#8cf0bd;padding:8px 12px;border-radius:99px;font-size:12px;white-space:nowrap}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.metric,.panel{background:linear-gradient(145deg,rgba(19,45,67,.96),rgba(12,31,48,.98));border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 34px #0002}.metric{padding:15px 17px}.metric small{color:var(--muted);display:block}.metric strong{font-size:25px;display:block;margin:3px 0}.metric em{font-size:11px;color:var(--cyan);font-style:normal}
+.panel{padding:18px;margin:14px 0}.panelhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.panel h2{font-size:18px;margin:0}.desc{color:var(--muted);font-size:12px;margin:4px 0 0}.tag{font-size:11px;color:var(--cyan);border:1px solid #286078;padding:5px 9px;border-radius:99px;white-space:nowrap}
+.scene-wrap{position:relative;overflow:hidden;border-radius:14px;border:1px solid #24465d;background:#0b1d2b}
+.scene-controls{position:absolute;right:12px;top:12px;width:min(320px,34%);max-height:calc(100% - 24px);overflow-y:auto;padding:10px;background:rgba(7,25,39,.91);border:1px solid #5a8295;border-radius:15px;box-shadow:0 12px 32px #0006;backdrop-filter:blur(9px);z-index:3}
+.scene-controls-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;color:#dff8ff;font-size:11px;font-weight:850;letter-spacing:.09em}
+.scene-controls-title small{font-size:10px;font-weight:500;letter-spacing:0;color:#9bb8c8}
+.scene-control{padding:5px 0;border-top:1px solid #29485b}
+.scene-control-head{display:flex;justify-content:space-between;gap:6px;align-items:center;font-size:11px;color:#eaf5fb}.scene-control-head label{font:inherit;min-width:0}.scene-control-head b{white-space:nowrap;font-size:10px}
+.scene-control-head b{color:#59e3f0;font-variant-numeric:tabular-nums}
+.scene-control-actions{display:flex;align-items:center;gap:6px;margin-top:3px}
+.scene-control-actions input{width:100%;min-width:0;accent-color:#42d7e8;cursor:pointer}
+.scene-step,.motor-step{width:27px;height:25px;flex:0 0 27px;padding:0;border-radius:8px;font-size:19px;line-height:1;background:#17506a;border-color:#43849c}
+.scene-controls-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:7px;font-size:10px;color:#a9c5d5}
+.scene-controls-foot button{font-size:10px;padding:6px 9px}
+.pulse-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#59d69a;box-shadow:0 0 10px #59d69a;margin-right:5px}
+#simulationPage .metrics{display:none}#simulationPage .grid2{display:none}.top{margin-bottom:7px}.top .lead{display:none}.top h1{font-size:clamp(23px,3vw,32px);margin:4px 0}.eyebrow{font-size:9px}.menu{margin:8px 0 5px;padding:6px}
+#simulationPage>section.panel:has(.controls),#simulationPage>section.panel:has(#exWater){display:none}
+#simulationPage>section.panel:has(.scene-wrap){padding:12px;margin:5px 0}
+#simulationPage>section.panel:has(.scene-wrap) .panelhead{margin:0 4px 8px;align-items:center}
+#simulationPage>section.panel:has(.scene-wrap) .panelhead .desc{display:none}
+#simulationPage>section.panel:has(.scene-wrap) .panelhead h2{font-size:14px}
+#simulationPage>section.panel:has(.scene-wrap) .tag{font-size:9px}
+#simulationPage .scene{max-height:calc(100vh - 175px);object-fit:contain}
+#simulationPage .scene-legend{padding-top:5px}
+@media(max-width:850px){.scene-controls{width:min(300px,43%);right:8px;top:8px;padding:8px}.scene-control{padding:4px 0}}
+@media(max-width:600px){#simulationPage .scene{min-width:0;min-height:420px;object-fit:cover}.scene-controls{position:absolute;right:6px;top:6px;width:min(285px,55%);max-height:calc(100% - 12px);padding:7px}.scene-control-actions input{max-width:none}.scene-control-head{font-size:10px}}
+.scene{width:100%;display:block;height:auto}.scene text{font-family:inherit}.water{stroke-dasharray:12 10;animation:flow 1s linear infinite}.water.slow{animation-duration:2.5s}.water.fast{animation-duration:.45s}.rotor{transform-origin:785px 249px;animation:spin 2s linear infinite}.rotor.paused{animation-play-state:paused}@keyframes flow{to{stroke-dashoffset:-44}}@keyframes spin{to{transform:rotate(360deg)}}.scene-legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 4px 0;color:var(--muted);font-size:11px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}.control{padding:12px;background:#0b1d2c;border:1px solid #1e4056;border-radius:13px}.control label{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#c5d8e5}.control output{color:var(--cyan);font-weight:750;font-variant-numeric:tabular-nums}.control input{width:100%;accent-color:var(--cyan);margin:12px 0 3px}.hint{font-size:10px;color:var(--muted)}.readout{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding:10px 0 0;margin-top:12px;font-size:12px}.readout b{color:var(--green)}.chartgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.chart{background:#0b1d2c;border:1px solid #1e4056;border-radius:13px;padding:12px}.chart h3{font-size:13px;margin:0 0 2px}.formula{font:11px ui-monospace,monospace;color:var(--muted);margin-bottom:5px}.chart svg{width:100%;height:auto;display:block}.status{padding:11px 13px;border-radius:12px;background:#0b1d2c;font-size:12px;margin-top:10px}.ok{color:var(--green)}.bad{color:var(--gold)}.explain{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.explain div{background:#0b1d2c;padding:12px;border-radius:12px;border:1px solid #1e4056}.explain b{display:block;color:var(--cyan);font-size:12px;margin-bottom:4px}.explain span{font-size:11px;color:var(--muted)}button{background:#174663;border:1px solid #34718f;color:white;padding:9px 13px;border-radius:10px;cursor:pointer;font-weight:650}button:hover{background:#1c587b}.footer{color:var(--muted);font-size:11px;text-align:center;margin-top:20px}.menu{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 8px;padding:8px;background:#0b1d2c;border:1px solid var(--line);border-radius:14px;position:sticky;top:8px;z-index:10;backdrop-filter:blur(12px)}.menu button{flex:1;min-width:150px;padding:12px 16px;background:#102b40;border-color:#28516a}.menu button.active{background:#17617a;border-color:var(--cyan);box-shadow:inset 0 0 0 1px #42d7e855;color:#fff}.page{display:none}.page.active{display:block;animation:pageIn .22s ease-out}@keyframes pageIn{from{opacity:.55;transform:translateY(5px)}to{opacity:1;transform:none}}.stepper{display:flex;align-items:center;gap:7px;margin-top:8px}.stepper button{width:34px;height:32px;padding:0;font-size:18px;line-height:1;background:#174663}.stepper input{flex:1;min-width:0;margin:8px 0 3px}.stepvalue{min-width:56px;text-align:right;color:var(--cyan);font-size:11px;font-weight:750}@media(max-width:560px){.menu{position:static}.menu button{min-width:120px}.stepper button{width:38px;height:36px}}
+@media(max-width:850px){.metrics{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.explain{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+@media(max-width:560px){main{padding:16px 12px 32px}.controls,.chartgrid{grid-template-columns:1fr}.panel{padding:13px}.metric strong{font-size:21px}.scene-wrap{overflow-x:auto}.scene{min-width:700px}}
+
+.scene-controls.is-hidden{display:none}
+.panel-toggle{padding:5px 8px!important;font-size:10px!important;white-space:nowrap;background:#174663!important;border:1px solid #43849c!important;border-radius:8px!important;color:#eaf5fb!important}
+.show-controls{display:none;position:absolute;right:14px;top:14px;z-index:4;padding:10px 13px;border-radius:11px;background:rgba(7,25,39,.94);border:1px solid #59cfe0;color:#eafaff;font-weight:750;font-size:12px;box-shadow:0 8px 22px #0006;cursor:pointer}
+.show-controls.is-visible{display:block}
+.show-controls:hover,.panel-toggle:hover{filter:brightness(1.2)}
+@media(max-width:600px){.show-controls{right:8px;top:8px;padding:8px 10px}}
+
+</style></head>
+<body><main>
+<header class="top"><div><div class="eyebrow">Laboratorio interactivo · hidráulica aplicada</div><h1>HidroVivero <span style="color:var(--cyan)">360°</span></h1><p class="lead">Del almacenamiento al riego: observa cómo el caudal, la bomba, la fricción y la energía afectan un sistema integrado de agua para un vivero.</p></div><div class="live">● SIMULACIÓN EN TIEMPO REAL</div></header>
+<nav class="menu" aria-label="Menú principal">
+ <button class="active" id="tabSimulation" type="button" aria-selected="true">🏗️ Simulación</button>
+ <button id="tabCharts" type="button" aria-selected="false">📊 Gráficas y cálculos</button><button id="presentMode" type="button" style="flex:0 0 auto">⛶ Presentar</button>
+</nav>
+
+<div class="page active" id="simulationPage">
+<section class="metrics">
+ <div class="metric"><small>Agua captada adicional</small><strong id="mWater">—</strong><em>litros acumulados</em></div>
+ <div class="metric"><small>Volumen en cisterna</small><strong id="mTank">—</strong><em>incluye 120 L iniciales</em></div>
+ <div class="metric"><small>Energía de bomba</small><strong id="mEnergy">—</strong><em>energía acumulada · kJ</em></div>
+ <div class="metric"><small>Rendimiento hidráulico visual</small><strong id="mEff">—</strong><em>estimado según fricción ajustada</em></div>
+</section>
+<section class="panel">
+ <div class="panelhead"><div><h2>01 · Vista general del sistema hidráulico</h2><p class="desc">Edificio, cisterna, estación de bombeo, canaleta, turbina y vivero conectados en un mismo recorrido.</p></div><span class="tag">ESQUEMA ANIMADO</span></div>
+ <div class="scene-wrap"><svg class="scene" viewBox="0 0 1100 500" role="img" aria-label="Sistema hidráulico con edificio, cisterna, bomba, turbina y vivero">
+ <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#143b55"/><stop offset="1" stop-color="#0c2639"/></linearGradient><linearGradient id="tank" x2="0" y2="1"><stop stop-color="#25bce0"/><stop offset="1" stop-color="#1165a5"/></linearGradient><linearGradient id="ground" x2="0" y2="1"><stop stop-color="#345c4b"/><stop offset="1" stop-color="#183b37"/></linearGradient></defs>
+ <rect width="1100" height="500" fill="url(#sky)"/><circle cx="1000" cy="65" r="30" fill="#ffc66d" opacity=".9"/><path d="M0 350 Q180 325 360 350 T720 345 T1100 350 V500 H0Z" fill="url(#ground)"/>
+ <!-- building -->
+ <g><rect x="55" y="125" width="230" height="225" rx="5" fill="#b8c9d0"/><path d="M42 128 L170 58 L298 128Z" fill="#52758b"/><rect x="85" y="160" width="48" height="58" fill="#3c718b"/><rect x="205" y="160" width="48" height="58" fill="#3c718b"/><rect x="150" y="255" width="55" height="95" fill="#35566a"/><path d="M55 230H285" stroke="#8ba5b3" stroke-width="5"/><text x="170" y="35" fill="#dff5ff" text-anchor="middle" font-size="15" font-weight="700">EDIFICIO / CAPTACIÓN</text></g>
+ <!-- cistern cutaway -->
+ <g><rect x="75" y="365" width="245" height="100" rx="8" fill="#18364a" stroke="#8da9b7" stroke-width="4"/><rect id="tankWater" x="80" y="395" width="235" height="65" rx="4" fill="url(#tank)"/><path d="M80 395 Q105 387 130 395 T180 395 T230 395 T280 395 T315 395" fill="none" stroke="#a8f5ff" stroke-width="3"/><text x="197" y="387" fill="#eaf5fb" text-anchor="middle" font-size="12" font-weight="700">CISTERNA</text><text id="tankLabel" x="197" y="439" fill="white" text-anchor="middle" font-size="15" font-weight="700">— L</text></g>
+ <!-- pipe from building to pump and onward -->
+ <path d="M285 300 H365 V410 H430 V300 H545" fill="none" stroke="#536d7d" stroke-width="18" stroke-linejoin="round"/><path d="M285 300 H365 V410 H430 V300 H545" fill="none" stroke="#36cce7" stroke-width="7" class="water" id="pipeA" stroke-linejoin="round"/>
+ <!-- pump -->
+ <g><rect x="345" y="265" width="105" height="72" rx="13" fill="#e5a64c" stroke="#ffe0a5" stroke-width="3"/><circle cx="397" cy="301" r="22" fill="#193c50" stroke="#fff0ca" stroke-width="4"/><path d="M397 283 Q414 295 397 301 Q385 311 397 320 Q379 305 397 283" fill="#ffc66d"/><text x="397" y="248" text-anchor="middle" fill="#ffe0a5" font-size="14" font-weight="700">BOMBA</text><text id="pumpState" x="397" y="355" text-anchor="middle" fill="#eaf5fb" font-size="11">ACTIVA</text></g>
+ <!-- hydro channel and turbine -->
+ <path d="M545 300 H720" stroke="#536d7d" stroke-width="25"/><path d="M545 300 H720" stroke="#36cce7" stroke-width="11" class="water" id="pipeB"/><g><rect x="720" y="250" width="140" height="100" rx="12" fill="#24485b" stroke="#7ea1b3" stroke-width="3"/><circle cx="785" cy="300" r="39" fill="#102b3d" stroke="#5ed9ec" stroke-width="4"/><g id="rotor" class="rotor"><path d="M785 266 Q808 278 785 300 Q762 278 785 266 M819 300 Q807 323 785 300 Q807 277 819 300 M785 334 Q762 322 785 300 Q808 322 785 334 M751 300 Q763 277 785 300 Q763 323 751 300" fill="#ffc66d"/></g><circle cx="785" cy="300" r="8" fill="#fff1c7"/><text x="790" y="230" fill="#eaf5fb" text-anchor="middle" font-size="14" font-weight="700">MICROTURBINA</text><text id="turbineLabel" x="790" y="375" fill="#9feeff" text-anchor="middle" font-size="12">— rpm</text></g>
+ <!-- canal to garden -->
+ <path d="M860 300 H1000 V350" fill="none" stroke="#536d7d" stroke-width="18"/><path d="M860 300 H1000 V350" fill="none" stroke="#36cce7" stroke-width="7" class="water" id="pipeC"/>
+ <!-- garden plants -->
+ <g id="plants"><path d="M890 350V300 M950 350V285 M1020 350V300" stroke="#69d69a" stroke-width="5"/><g fill="#59d69a"><ellipse cx="876" cy="315" rx="18" ry="9" transform="rotate(25 876 315)"/><ellipse cx="903" cy="305" rx="18" ry="9" transform="rotate(-25 903 305)"/><ellipse cx="936" cy="303" rx="19" ry="10" transform="rotate(25 936 303)"/><ellipse cx="965" cy="296" rx="19" ry="10" transform="rotate(-25 965 296)"/><ellipse cx="1006" cy="315" rx="18" ry="9" transform="rotate(25 1006 315)"/><ellipse cx="1034" cy="305" rx="18" ry="9" transform="rotate(-25 1034 305)"/></g><g fill="#ffc66d"><circle cx="890" cy="282" r="3"/><circle cx="950" cy="267" r="3"/><circle cx="1020" cy="282" r="3"/></g></g>
+ <g fill="#d9f4ff" font-size="13" font-weight="700"><text x="955" y="225" text-anchor="middle">VIVERO / RIEGO</text><text x="615" y="270" text-anchor="middle">TUBERÍA PRINCIPAL</text></g>
+ <g fill="#a9c5d5" font-size="11"><text x="170" y="485" text-anchor="middle">Reserva de agua</text><text x="395" y="390" text-anchor="middle">Impulso y presión</text><text x="790" y="405" text-anchor="middle">Energía hidráulica</text><text x="960" y="390" text-anchor="middle">Aspersión a plantas</text></g>
+ <g id="spray" stroke="#8cecff" stroke-width="2" opacity=".9"><path d="M950 285l-15 -20 M950 285l0 -24 M950 285l16 -20 M890 300l-12 -17 M1020 300l13 -17"/></g>
+ <path d="M0 350H1100" stroke="#71977e" stroke-width="3"/>
+ </svg>
+
+ <button type="button" id="showSceneControls" class="show-controls" aria-expanded="true">⚙ Mostrar controles</button> <div class="scene-controls" aria-label="Panel de control de la simulación">
+  <div class="scene-controls-title"><span>CONTROLES DEL SISTEMA</span><button type="button" id="hideSceneControls" class="panel-toggle">Ocultar −</button></div>
+  <div class="scene-control">
+   <div class="scene-control-head"><label for="sceneTankSlider">💧 Tiempo de captación / cisterna</label><b id="sceneTankValue">—</b></div>
+   <div class="scene-control-actions"><button type="button" class="scene-step" data-target="T1" data-dir="-1">−</button><input id="sceneTankSlider" type="range" min="0" max="8" step=".1" value="5"><button type="button" class="scene-step" data-target="T1" data-dir="1">+</button></div>
+  </div>
+  <div class="scene-control">
+   <div class="scene-control-head"><label for="sceneFlowSlider">🌊 Caudal base</label><b id="sceneFlowValue">—</b></div>
+   <div class="scene-control-actions"><button type="button" class="scene-step" data-target="a1" data-dir="-1">−</button><input id="sceneFlowSlider" type="range" min="10" max="30" step="1" value="20"><button type="button" class="scene-step" data-target="a1" data-dir="1">+</button></div>
+  </div>
+  <div class="scene-control">
+   <div class="scene-control-head"><label for="motorSpeed">⚙️ Velocidad del motor</label><b id="sceneMotorValue">70%</b></div>
+   <div class="scene-control-actions"><button type="button" class="motor-step" data-dir="-1">−</button><input id="motorSpeed" type="range" min="20" max="100" step="5" value="70"><button type="button" class="motor-step" data-dir="1">+</button></div>
+  </div>
+  <div class="scene-control">
+   <div class="scene-control-head"><label for="sceneFriction">〰️ Fricción relativa</label><b id="sceneFrictionValue">35%</b></div>
+   <div class="scene-control-actions"><button type="button" class="scene-step" data-target="friction" data-dir="-1">−</button><input id="sceneFriction" type="range" min="0" max="100" step="1" value="35"><button type="button" class="scene-step" data-target="friction" data-dir="1">+</button></div>
+  </div>
+  <div class="scene-control">
+   <div class="scene-control-head"><label for="sceneLength">📏 Longitud de tubería</label><b id="sceneLengthValue">3.0 m</b></div>
+   <div class="scene-control-actions"><button type="button" class="scene-step" data-target="L2" data-dir="-1">−</button><input id="sceneLength" type="range" min="0" max="6" step=".1" value="3"><button type="button" class="scene-step" data-target="L2" data-dir="1">+</button></div>
+  </div>
+  <div class="scene-control">
+   <div class="scene-control-head"><label for="scenePumpTime">⏱️ Tiempo de funcionamiento bomba</label><b id="scenePumpTimeValue">5.0 min</b></div>
+   <div class="scene-control-actions"><button type="button" class="scene-step" data-target="T3" data-dir="-1">−</button><input id="scenePumpTime" type="range" min="0" max="10" step=".1" value="5"><button type="button" class="scene-step" data-target="T3" data-dir="1">+</button></div>
+  </div>
+  <div class="scene-control">
+   <div class="scene-control-head"><label for="sceneWidth">↔️ Ancho de canaleta</label><b id="sceneWidthValue">4.00 m</b></div>
+   <div class="scene-control-actions"><button type="button" class="scene-step" data-target="w4" data-dir="-1">−</button><input id="sceneWidth" type="range" min="0" max="5" step=".05" value="4"><button type="button" class="scene-step" data-target="w4" data-dir="1">+</button></div>
+  </div>
+  <div class="scene-control">
+   <div class="scene-control-head"><label for="sceneLimit">∫ Límite de integración</label><b id="sceneLimitValue">4.00</b></div>
+   <div class="scene-control-actions"><button type="button" class="scene-step" data-target="b5" data-dir="-1">−</button><input id="sceneLimit" type="range" min="1" max="6" step=".05" value="4"><button type="button" class="scene-step" data-target="b5" data-dir="1">+</button></div>
+  </div>
+  <div class="scene-controls-foot"><span><i class="pulse-dot"></i> Gráficas y escena sincronizadas</span><button type="button" id="sceneReset">Restablecer</button></div>
+ </div>
+</div><div class="scene-legend"><span><i class="dot" style="background:#36cce7"></i>Agua en movimiento</span><span><i class="dot" style="background:#ffc66d"></i>Equipo mecánico</span><span><i class="dot" style="background:#59d69a"></i>Vegetación</span><span>La animación representa el sentido del flujo; los valores se calculan con los controles.</span></div>
+</section>
+<div class="grid2">
+ <section class="panel"><div class="panelhead"><div><h2>02 · Sala de control</h2><p class="desc">Modifica las condiciones y observa el cambio inmediato en el sistema.</p></div><span class="tag">CONTROLES</span></div>
+ <p class="desc" style="margin:0 0 12px">Usa los botones − y + para ajustar cada valor poco a poco, o arrastra el control. Los cambios se reflejan inmediatamente en el sistema.</p><div class="controls">
+  <div class="control"><label>Tiempo de captación <output id="oT1"></output></label><div class="stepper"><button type="button" class="stepbtn" data-target="T1" data-dir="-1" aria-label="Disminuir">−</button><input id="T1" type="range" min="0" max="8" step=".1" value="5"><button type="button" class="stepbtn" data-target="T1" data-dir="1" aria-label="Aumentar">+</button><span class="stepvalue" id="step_T1"></span></div><div class="hint">Duración del ingreso de agua · minutos</div></div>
+  <div class="control"><label>Caudal base <output id="oa1"></output></label><div class="stepper"><button type="button" class="stepbtn" data-target="a1" data-dir="-1" aria-label="Disminuir">−</button><input id="a1" type="range" min="10" max="30" step="1" value="20"><button type="button" class="stepbtn" data-target="a1" data-dir="1" aria-label="Aumentar">+</button><span class="stepvalue" id="step_a1"></span></div><div class="hint">Caudal inicial de captación · L/min</div></div>
+  <div class="control"><label>Fricción relativa <output id="frOut"></output></label><div class="stepper"><button type="button" class="stepbtn" data-target="friction" data-dir="-1" aria-label="Disminuir">−</button><input id="friction" type="range" min="0" max="100" step="1" value="35"><button type="button" class="stepbtn" data-target="friction" data-dir="1" aria-label="Aumentar">+</button><span class="stepvalue" id="step_friction"></span></div><div class="hint">0% = pérdidas visuales mínimas · 100% = pérdidas altas</div></div>
+  <div class="control"><label>Dosificación / longitud <output id="oL2"></output></label><div class="stepper"><button type="button" class="stepbtn" data-target="L2" data-dir="-1" aria-label="Disminuir">−</button><input id="L2" type="range" min="0" max="6" step=".1" value="3"><button type="button" class="stepbtn" data-target="L2" data-dir="1" aria-label="Aumentar">+</button><span class="stepvalue" id="step_L2"></span></div><div class="hint">Longitud considerada para el fertilizante · m</div></div>
+  <div class="control"><label>Tiempo de operación bomba <output id="oT3"></output></label><div class="stepper"><button type="button" class="stepbtn" data-target="T3" data-dir="-1" aria-label="Disminuir">−</button><input id="T3" type="range" min="0" max="10" step=".1" value="5"><button type="button" class="stepbtn" data-target="T3" data-dir="1" aria-label="Aumentar">+</button><span class="stepvalue" id="step_T3"></span></div><div class="hint">Tiempo para energía adicional · minutos</div></div>
+  <div class="control"><label>Ancho de canaleta <output id="ow4"></output></label><div class="stepper"><button type="button" class="stepbtn" data-target="w4" data-dir="-1" aria-label="Disminuir">−</button><input id="w4" type="range" min="0" max="5" step=".05" value="4"><button type="button" class="stepbtn" data-target="w4" data-dir="1" aria-label="Aumentar">+</button><span class="stepvalue" id="step_w4"></span></div><div class="hint">Ancho del perfil semicircular · m</div></div>
+  <div class="control"><label>Límite del índice <output id="ob5"></output></label><div class="stepper"><button type="button" class="stepbtn" data-target="b5" data-dir="-1" aria-label="Disminuir">−</button><input id="b5" type="range" min="1" max="6" step=".05" value="4"><button type="button" class="stepbtn" data-target="b5" data-dir="1" aria-label="Aumentar">+</button><span class="stepvalue" id="step_b5"></span></div><div class="hint">Límite superior de integración</div></div>
+ </div><div class="readout"><span>Caudal estimado después de pérdidas visuales</span><b id="netFlow">—</b></div><div class="readout"><span>Estado del sistema</span><b id="systemState">—</b></div><p style="margin:13px 0 0"><button id="reset">↺ Restablecer valores del trabajo</button></p>
+ </section>
+ <section class="panel"><div class="panelhead"><div><h2>03 · Qué está pasando</h2><p class="desc">Interpretación en lenguaje sencillo de los cambios.</p></div><span class="tag">LECTURA TÉCNICA</span></div>
+ <div class="explain" style="grid-template-columns:1fr"><div><b>AGUA Y ALMACENAMIENTO</b><span id="exWater">El volumen de agua se actualiza con la integral del caudal.</span></div><div><b>BOMBA Y ENERGÍA</b><span id="exPump">La energía acumulada depende del tiempo de operación.</span></div><div><b>FRICCIÓN Y FLUJO</b><span id="exFriction">Al aumentar la fricción, disminuye el caudal efectivo ilustrado.</span></div></div>
+ <div class="status" id="criteria">Evaluación de criterios técnicos…</div>
+ </section>
+</div>
+</div>
+<div class="page" id="chartsPage">
+<section class="panel"><div class="panelhead"><div><h2>04 · Gráficas y cálculos matemáticos</h2><p class="desc">Las áreas sombreadas representan la acumulación calculada hasta el valor seleccionado.</p></div><span class="tag">INTEGRALES EN VIVO</span></div><div class="chartgrid">
+ <div class="chart"><h3>1. Agua captada</h3><div class="formula">q(t) = a + 3t² + 2√(t+1) · V = ∫ q(t) dt</div><svg id="g1" viewBox="0 0 320 150"></svg><div class="readout"><span>Volumen adicional</span><b id="r1">—</b></div></div>
+ <div class="chart"><h3>2. Fertilizante dosificado</h3><div class="formula">n(x) = 8x / (1+x²)² · sustitución</div><svg id="g2" viewBox="0 0 320 150"></svg><div class="readout"><span>Masa acumulada</span><b id="r2">—</b></div></div>
+ <div class="chart"><h3>3. Energía adicional de la bomba</h3><div class="formula">P(t) = 10t·e⁻⁰·²ᵗ · integración por partes</div><svg id="g3" viewBox="0 0 320 150"></svg><div class="readout"><span>Energía acumulada</span><b id="r3">—</b></div></div>
+ <div class="chart"><h3>4. Área de la canaleta</h3><div class="formula">f(x) = √(25−x²) · sustitución trigonométrica</div><svg id="g4" viewBox="0 0 320 150"></svg><div class="readout"><span>Área calculada</span><b id="r4">—</b></div></div>
+ <div class="chart"><h3>5. Índice de fricción</h3><div class="formula">g(x) = (4x+5)/(x²+3x+2) · fracciones parciales</div><svg id="g5" viewBox="0 0 320 150"></svg><div class="readout"><span>Índice acumulado</span><b id="r5">—</b></div></div>
+</div></section>
+<section class="panel"><div class="panelhead"><div><h2>05 · Cómo interpretar la simulación</h2><p class="desc">Conecta la operación física con los resultados matemáticos.</p></div></div>
+<div class="explain"><div><b>Más agua</b><span>Al aumentar el caudal base o el tiempo de captación, crece el volumen acumulado y sube el nivel de la cisterna.</span></div><div><b>Más fricción</b><span>En una instalación real, las pérdidas de carga aumentan y se reduce la presión disponible. El control de fricción modifica una estimación visual del flujo efectivo.</span></div><div><b>Más energía</b><span>La integral de potencia representa la energía acumulada que entrega o demanda la bomba durante el intervalo considerado.</span></div></div>
+<p class="desc" style="margin-top:14px">Nota académica: se conservan las cinco funciones, integrales y criterios del simulador original. El control de fricción relativa es una capa didáctica visual independiente del índice integral g(x); no sustituye un cálculo hidráulico de Darcy-Weisbach. La turbina es una representación conceptual de recuperación de energía, no un dimensionamiento real.</p></section>
+</div>
+<div class="footer">HidroVivero 360° · Simulación educativa · Valores matemáticos del trabajo original</div>
+</main>
+<script>
+(()=>{const $=id=>document.getElementById(id),fmt=(v,d=2)=>Number(v).toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d});
+const defs={T1:5,a1:20,L2:3,T3:5,w4:4,b5:4,friction:35};
+function draw(id,f,x0,x1,xc){let svg=$(id),W=320,H=150,m={l:32,r:8,t:8,b:22},N=100,vals=[],max=0;for(let i=0;i<=N;i++){let x=x0+(x1-x0)*i/N,y=Math.max(0,f(x));vals.push(y);max=Math.max(max,y)}max=max*1.12||1;let sx=x=>m.l+(x-x0)/(x1-x0)*(W-m.l-m.r),sy=y=>H-m.b-y/max*(H-m.t-m.b);let line='',area=`M${sx(x0)} ${sy(0)}`;for(let i=0;i<=N;i++){let x=x0+(x1-x0)*i/N;line+=(i?'L':'M')+sx(x).toFixed(1)+' '+sy(vals[i]).toFixed(1);if(x<=xc)area+='L'+sx(x).toFixed(1)+' '+sy(vals[i]).toFixed(1)}area+=`L${sx(xc)} ${sy(0)}Z`;let ticks='';for(let i=0;i<=4;i++){let x=x0+(x1-x0)*i/4;ticks+=`<text x="${sx(x)}" y="143" fill="#8faabd" font-size="9" text-anchor="middle">${fmt(x,1)}</text>`}svg.innerHTML=`<line x1="${m.l}" y1="${sy(0)}" x2="${W-m.r}" y2="${sy(0)}" stroke="#607e91"/><path d="${area}" fill="#42d7e8" opacity=".2"/><path d="${line}" fill="none" stroke="#42d7e8" stroke-width="2.5"/><line x1="${sx(xc)}" x2="${sx(xc)}" y1="8" y2="${sy(0)}" stroke="#ffc66d" stroke-dasharray="4 4"/>${ticks}`}
+function status(ok,msg){return `<span class="${ok?'ok':'bad'}">${ok?'✓':'!' } ${msg}</span>`}
+function update(){syncStepValues();syncSceneControls();let T1=+$('T1').value,a=+$('a1').value,L=+$('L2').value,T3=+$('T3').value,w=+$('w4').value,b=+$('b5').value,fr=+$('friction').value;
+let q=t=>a+3*t*t+2*Math.sqrt(t+1),V=a*T1+T1**3+4/3*((T1+1)**1.5-1),N=4*(1-1/(1+L*L)),P=t=>10*t*Math.exp(-.2*t),E=250-50*Math.exp(-.2*T3)*(T3+5),A=12.5*Math.asin(Math.min(1,w/5))+w*Math.sqrt(Math.max(0,25-w*w))/2,H=Math.log((b+1)/2)+3*Math.log((b+2)/3);
+let motor=+$('motorSpeed').value/100;let efficiency=(1-.65*fr/100)*motor,net=q(T1)*efficiency;
+[['oT1',fmt(T1,1)+' min'],['oa1',fmt(a,0)+' L/min'],['oL2',fmt(L,1)+' m'],['oT3',fmt(T3,1)+' min'],['ow4',fmt(w,2)+' m'],['ob5',fmt(b,2)],['frOut',fr+' %']].forEach(([id,v])=>$(id).textContent=v);
+$('mWater').textContent=fmt(V,1)+' L';$('mTank').textContent=fmt(120+V,1)+' L';$('mEnergy').textContent=fmt(E,1)+' kJ';$('mEff').textContent=fmt(efficiency*100,0)+' %';
+$('tankLabel').textContent=fmt(120+V,0)+' L';$('sceneTankValue').textContent=fmt(120+V,0)+' L';$('sceneMotorValue').textContent=Math.round(motor*100)+'%';$('sceneFlowValue').textContent=fmt(net,1)+' L/min';$('tankWater').setAttribute('y',460-Math.min(65,(120+V)/700*65));$('tankWater').setAttribute('height',Math.min(65,(120+V)/700*65));
+$('netFlow').textContent=fmt(net,1)+' L/min';$('systemState').textContent=fr>70?'Pérdidas elevadas':fr>40?'Flujo parcialmente restringido':'Flujo favorable';
+$('exWater').textContent=`Se captan ${fmt(V,1)} L adicionales. Sumados a los 120 L iniciales, la cisterna contiene ${fmt(120+V,1)} L.`;
+$('exPump').textContent=`La energía acumulada es ${fmt(E,2)} kJ. La tasa de potencia al final del intervalo es ${fmt(P(T3),2)} kJ/min.`;
+$('exFriction').textContent=`Con fricción relativa de ${fr}%, el flujo efectivo ilustrativo es ${fmt(net,1)} L/min, frente a ${fmt(q(T1),1)} L/min antes de pérdidas.`;
+$('pipeA').setAttribute('stroke-width',5+efficiency*5);$('pipeB').setAttribute('stroke-width',4+efficiency*7);$('pipeC').setAttribute('stroke-width',3+efficiency*5);
+['pipeA','pipeB','pipeC'].forEach(id=>{ $(id).classList.toggle('slow',fr>65); $(id).style.animationDuration=(1.8/(.35+motor*.9))+'s'; });$('rotor').style.animationDuration=(2.8-1.9*motor+fr/55)+'s';$('rotor').classList.toggle('paused',net<1);$('pumpState').textContent=net<1?'FLUJO BAJO':'ACTIVA';$('turbineLabel').textContent=fmt(net*18,0)+' rpm aprox.';
+$('r1').textContent=fmt(V)+' L';$('r2').textContent=fmt(N)+' g';$('r3').textContent=fmt(E)+' kJ';$('r4').textContent=fmt(A)+' m²';$('r5').textContent=fmt(H,3);
+draw('g1',q,0,8,T1);draw('g2',x=>8*x/(1+x*x)**2,0,6,L);draw('g3',P,0,10,T3);draw('g4',x=>Math.sqrt(Math.max(0,25-x*x)),0,5,w);draw('g5',x=>(4*x+5)/(x*x+3*x+2),1,6,b);
+let ok1=V>=240,ok4=A>=17,ok5=H<=3.10;$('criteria').innerHTML=`<b>Revisión de los criterios originales</b><br>${status(ok1,`Captación: ${ok1?'cumple':'no cumple'} · ${fmt(V)} L frente a 240 L`)}<br>${status(ok4,`Canaleta: ${ok4?'cumple':'no cumple'} · ${fmt(A)} m² frente a 17 m²`)}<br>${status(ok5,`Índice: ${ok5?'cumple':'no cumple'} · ${fmt(H,3)} frente a máximo 3,10`)}`;
+}
+document.querySelectorAll('input[type=range]').forEach(e=>e.addEventListener('input',update));
+
+
+// Controles de la escena conectados a los parámetros matemáticos originales.
+const sceneBindings = [
+ ['sceneTankSlider','T1','sceneTankValue',' min'],
+ ['sceneFlowSlider','a1','sceneFlowValue',' L/min'],
+ ['sceneFriction','friction','sceneFrictionValue','%'],
+ ['sceneLength','L2','sceneLengthValue',' m'],
+ ['scenePumpTime','T3','scenePumpTimeValue',' min'],
+ ['sceneWidth','w4','sceneWidthValue',' m'],
+ ['sceneLimit','b5','sceneLimitValue','']
+];
+const sceneDecimals = {T1:1,a1:0,friction:0,L2:1,T3:1,w4:2,b5:2};
+function syncSceneControls(){
+ sceneBindings.forEach(([sid,tid,lid,unit])=>{
+  const control=$(sid), source=$(tid), label=$(lid);
+  if(!control || !source) return;
+  control.value=source.value;
+  if(label) label.textContent=fmt(Number(source.value),sceneDecimals[tid]??1)+unit;
+ });
+ $('sceneMotorValue').textContent=$('motorSpeed').value+'%';
+}
+sceneBindings.forEach(([sid,tid])=>{
+ $(sid).addEventListener('input',()=>{
+  $(tid).value=$(sid).value;
+  update();
+ });
+});
+$('motorSpeed').addEventListener('input',update);
+document.querySelectorAll('.scene-step').forEach(btn=>btn.addEventListener('click',()=>{
+ const target=$(btn.dataset.target), step=Number(target.step||1);
+ const decimals=(String(target.step).split('.')[1]||'').length;
+ target.value=Math.min(Number(target.max),Math.max(Number(target.min),Number(target.value)+Number(btn.dataset.dir)*step)).toFixed(decimals);
+ update();
+}));
+document.querySelectorAll('.motor-step').forEach(btn=>btn.addEventListener('click',()=>{
+ const el=$('motorSpeed');
+ el.value=Math.max(Number(el.min),Math.min(Number(el.max),Number(el.value)+Number(btn.dataset.dir)*5));
+ update();
+}));
+$('sceneReset').addEventListener('click',()=>{
+ Object.entries(defs).forEach(([k,v])=>$(k).value=v);
+ $('motorSpeed').value=70;
+ update();
+});
+// Ocultar y volver a mostrar los controles sin abandonar la simulación.
+const scenePanel = document.querySelector('.scene-controls');
+const showControlsBtn = $('showSceneControls');
+$('hideSceneControls').addEventListener('click',()=>{
+ scenePanel.classList.add('is-hidden');
+ showControlsBtn.classList.add('is-visible');
+ showControlsBtn.setAttribute('aria-expanded','false');
+});
+showControlsBtn.addEventListener('click',()=>{
+ scenePanel.classList.remove('is-hidden');
+ showControlsBtn.classList.remove('is-visible');
+ showControlsBtn.setAttribute('aria-expanded','true');
+});
+
+// Navegación entre las dos pantallas principales.
+const showPage = (which) => {
+  const sim = which === 'simulation';
+  $('simulationPage').classList.toggle('active', sim);
+  $('chartsPage').classList.toggle('active', !sim);
+  $('tabSimulation').classList.toggle('active', sim);
+  $('tabCharts').classList.toggle('active', !sim);
+  $('tabSimulation').setAttribute('aria-selected', String(sim));
+  $('tabCharts').setAttribute('aria-selected', String(!sim));
+  window.scrollTo({top: 0, behavior: 'smooth'});
+};
+$('tabSimulation').addEventListener('click', () => showPage('simulation'));
+$('tabCharts').addEventListener('click', () => showPage('charts'));
+$('presentMode').addEventListener('click', async () => { try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); else await document.exitFullscreen(); } catch(e) {} });
+
+// Controles incrementales: respetan min, max y step de cada deslizador.
+document.querySelectorAll('.stepbtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = $(btn.dataset.target);
+    const step = Number(input.step || 1);
+    const min = Number(input.min);
+    const max = Number(input.max);
+    const next = Math.min(max, Math.max(min, Number(input.value) + Number(btn.dataset.dir) * step));
+    const decimals = (String(input.step).split('.')[1] || '').length;
+    input.value = next.toFixed(decimals);
+    input.dispatchEvent(new Event('input', {bubbles: true}));
+  });
+});
+const syncStepValues = () => {
+  document.querySelectorAll('.stepvalue').forEach(out => {
+    const input = $(out.id.replace('step_', ''));
+    if (input) out.textContent = input.value;
+  });
+};
+$('reset').addEventListener('click',()=>{Object.entries(defs).forEach(([k,v])=>$(k).value=v);update()});update();
+})();
+</script></body></html>
